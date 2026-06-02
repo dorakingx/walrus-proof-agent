@@ -1,30 +1,59 @@
 # Walrus Proof Agent
 
-Walrus Proof Agent is a Sui Overflow 2026 prototype for turning autonomous agent decisions into verifiable audit trails.
+Walrus Proof Agent turns autonomous agent decisions into verifiable audit trails on Sui and Walrus.
 
-The demo focuses on a high-value pattern: an AI agent handles a real-world workflow, stores its evidence bundle and reasoning artifacts in Walrus, then mints a compact Sui receipt so any reviewer can verify what happened before money, trades, or approvals move.
+AI agents are starting to screen grant applications, execute market actions, and run operational workflows, but their evidence and reasoning are usually locked inside an application log. Walrus Proof Agent stores the full evidence bundle on Walrus and mints a compact Sui `ProofReceipt` object so reviewers can verify what happened without trusting the UI.
 
-## Why Sui and Walrus
+- Track: Sui Overflow 2026 Walrus Track
+- Live demo: https://walrus-proof-agent.vercel.app
+- Repository: https://github.com/dorakingx/walrus-proof-agent
+- Status: Sui testnet + Walrus testnet prototype
 
-- Walrus stores the large evidence bundle, including documents, citations, model output, and replay metadata.
-- Sui stores the compact proof receipt, with the Walrus blob id, evidence digest, signer, policy, and timestamp.
-- Reviewers verify the receipt without trusting the agent UI.
+## What It Does
 
-## Current testnet flow
+1. A user connects Slush on Sui testnet.
+2. The app publishes the `ProofReceipt` Move package from the browser wallet.
+3. The user chooses an agent workflow, such as DAO grant review.
+4. The app uploads the proof payload to the Walrus Testnet publisher HTTP API.
+5. The app hashes `proofDigest + Walrus blob id + signer`.
+6. The app calls `proof_registry::seal_proof`.
+7. The UI shows the Walrus blob id, Sui `ProofReceipt` object id, transaction digest, and verification links.
 
-The web app now supports a first real Sui testnet anchor:
+If the package is not published yet, the app can fall back to a deterministic 1 MIST testnet anchor transfer. The preferred judging demo is the `ProofReceipt` path.
 
-1. Connect Slush on Sui testnet.
-2. Click `Publish ProofReceipt package` once. The app publishes the compiled Move package from the browser wallet and stores the package id locally.
-3. Choose a workflow scenario.
-4. Click `Upload to Walrus + mint ProofReceipt`.
-5. The app uploads the proof payload to the Walrus Testnet publisher HTTP API.
-6. The app hashes `proofDigest + Walrus blob id + signer` and calls `proof_registry::seal_proof`.
-7. The UI shows the Walrus blob id, ProofReceipt object id, Sui transaction digest, and verification links.
+## Why Sui And Walrus
 
-If the package is not published yet, the app can still fall back to the earlier deterministic 1 MIST anchor transfer. The preferred judging demo is the ProofReceipt package path.
+- Walrus stores the large evidence bundle: documents, citations, agent output, policy metadata, and replay data.
+- Sui stores the compact receipt: Walrus blob id, evidence digest, policy, signer, and timestamp.
+- Reviewers can verify the proof from public links instead of trusting the frontend.
+- The pattern works for DAO grant review, trading agents, incident response, procurement approvals, and other agentic workflows where auditability matters.
 
-## Local development
+## Architecture
+
+```mermaid
+flowchart LR
+  A["Agent workflow"] --> B["Proof payload JSON"]
+  B --> C["Walrus Testnet publisher"]
+  C --> D["Walrus blob id"]
+  B --> E["Proof digest"]
+  D --> F["Anchor digest"]
+  E --> F
+  F --> G["Sui proof_registry::seal_proof"]
+  G --> H["ProofReceipt object"]
+  H --> I["Reviewer verification"]
+  D --> I
+```
+
+## Verification Path
+
+After a successful demo run, a reviewer can:
+
+1. Open the Walrus blob link and inspect the stored proof payload.
+2. Open the Sui transaction link and confirm the transaction succeeded on testnet.
+3. Open the `ProofReceipt` object link and confirm the receipt was minted by the package.
+4. Recompute the digest from the proof payload, signer, policy, and Walrus blob id.
+
+## Local Development
 
 ```bash
 npm install
@@ -43,6 +72,15 @@ npm run build
 - Slush browser extension
 - Testnet SUI for gas
 
-## Move prototype
+## Move Package
 
-The `move/` package sketches the Sui receipt object that would be deployed after the web demo is wired to a Sui wallet and Walrus upload flow.
+The Move source lives in `move/sources/proof_registry.move`. It defines a `ProofReceipt` object and a `seal_proof` entry function. The compiled package bytecode is embedded in the web app so judges can publish it from Slush without a local Sui CLI.
+
+```bash
+cd move
+sui move build
+```
+
+## Submission Notes
+
+See `docs/submission.md` for the judging checklist and `docs/demo-script.md` for the 2-minute demo script.

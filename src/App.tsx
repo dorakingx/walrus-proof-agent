@@ -84,7 +84,7 @@ const initialSteps: ProofStep[] = [
   },
   {
     label: "Sui Receipt",
-    description: "A testnet event anchors the real Walrus blob id, digest, signer, and policy.",
+    description: "A ProofReceipt object records the real Walrus blob id, digest, signer, and policy.",
     status: "pending",
     hash: "0x---",
   },
@@ -443,7 +443,7 @@ function App() {
           <aside className="panel inspector">
             <div className="panelHeader">
               <h3>Receipt preview</h3>
-              <span>Walrus + Sui event</span>
+              <span>Walrus + Sui object</span>
             </div>
             <dl>
               <div>
@@ -547,7 +547,16 @@ function App() {
                   {anchor.receiptId && (
                     <div>
                       <dt>ProofReceipt</dt>
-                      <dd className="mono">{anchor.receiptId}</dd>
+                      <dd>
+                        <a
+                          className="mono"
+                          href={`https://testnet.suivision.xyz/object/${anchor.receiptId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {anchor.receiptId}
+                        </a>
+                      </dd>
                     </div>
                   )}
                   <div>
@@ -579,6 +588,24 @@ function App() {
             </button>
             {anchorError && <p className="error">{anchorError}</p>}
           </aside>
+        </section>
+
+        <section className="verifierStrip" aria-label="Verifier path">
+          <div>
+            <span>1</span>
+            <h3>Read Walrus evidence</h3>
+            <p>Open the blob link and inspect the stored proof payload.</p>
+          </div>
+          <div>
+            <span>2</span>
+            <h3>Check Sui receipt</h3>
+            <p>Open the ProofReceipt object or transaction on Sui testnet.</p>
+          </div>
+          <div>
+            <span>3</span>
+            <h3>Recompute digest</h3>
+            <p>Verify the receipt binds signer, policy, and Walrus blob id.</p>
+          </div>
         </section>
       </section>
     </main>
