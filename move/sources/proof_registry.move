@@ -19,7 +19,7 @@ module walrus_proof_agent::proof_registry {
         created_ms: u64,
     }
 
-    public entry fun seal_proof(
+    entry fun seal_proof(
         walrus_blob_id: vector<u8>,
         evidence_digest: vector<u8>,
         policy: vector<u8>,

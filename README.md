@@ -15,13 +15,14 @@ The demo focuses on a high-value pattern: an AI agent handles a real-world workf
 The web app now supports a first real Sui testnet anchor:
 
 1. Connect Slush on Sui testnet.
-2. Choose a workflow scenario.
-3. Click `Upload to Walrus + anchor on Sui`.
-4. The app uploads the proof payload to the Walrus Testnet publisher HTTP API.
-5. The app hashes `proofDigest + Walrus blob id + signer`, derives a Sui address from that digest, and transfers 1 MIST to that derived address on testnet.
-6. The UI shows the Walrus blob id, derived anchor address, Walrus object id when available, Sui transaction digest, and verification links.
+2. Click `Publish ProofReceipt package` once. The app publishes the compiled Move package from the browser wallet and stores the package id locally.
+3. Choose a workflow scenario.
+4. Click `Upload to Walrus + mint ProofReceipt`.
+5. The app uploads the proof payload to the Walrus Testnet publisher HTTP API.
+6. The app hashes `proofDigest + Walrus blob id + signer` and calls `proof_registry::seal_proof`.
+7. The UI shows the Walrus blob id, ProofReceipt object id, Sui transaction digest, and verification links.
 
-This is the bridge from prototype to real demo. The next milestone is deploying the custom `ProofReceipt` Move package so the anchor is stored as a first-class Sui object rather than a generic event.
+If the package is not published yet, the app can still fall back to the earlier deterministic 1 MIST anchor transfer. The preferred judging demo is the ProofReceipt package path.
 
 ## Local development
 

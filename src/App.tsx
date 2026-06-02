@@ -3,10 +3,15 @@ import { ConnectButton } from "@mysten/dapp-kit-react/ui";
 import {
   useCurrentAccount,
   useCurrentNetwork,
+  useCurrentClient,
   useCurrentWallet,
   useDAppKit,
 } from "@mysten/dapp-kit-react";
 import { Transaction } from "@mysten/sui/transactions";
+import {
+  PROOF_REGISTRY_DEPENDENCIES,
+  PROOF_REGISTRY_MODULES,
+} from "./movePackage";
 
 type StepStatus = "verified" | "pending" | "sealed";
 
@@ -22,6 +27,7 @@ type AnchorState = {
   proofDigest: string;
   anchorDigest: string;
   anchorAddress: string;
+  receiptId?: string;
   walrusBlobId: string;
   walrusObjectId?: string;
   walrusEventDigest?: string;
@@ -116,6 +122,15 @@ function shortAddress(address?: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+function stringToBytes(value: string) {
+  return Array.from(new TextEncoder().encode(value));
+}
+
+function hexToBytes(value: string) {
+  const hex = value.startsWith("0x") ? value.slice(2) : value;
+  return Array.from(hex.match(/.{1,2}/g) ?? [], (byte) => Number.parseInt(byte, 16));
+}
+
 async function createProofPayload(scenario: string, signer: string) {
   const payload = {
     app: "walrus-proof-agent",
@@ -200,9 +215,15 @@ function App() {
   const [anchor, setAnchor] = useState<AnchorState | null>(null);
   const [anchorError, setAnchorError] = useState("");
   const [isAnchoring, setIsAnchoring] = useState(false);
+  const [packageId, setPackageId] = useState(
+    () => window.localStorage.getItem("walrus-proof-agent-package-id") ?? "",
+  );
+  const [packageDigest, setPackageDigest] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const account = useCurrentAccount();
   const wallet = useCurrentWallet();
   const network = useCurrentNetwork();
+  const client = useCurrentClient();
   const dAppKit = useDAppKit();
 
   const scenario = useMemo(() => {
@@ -250,8 +271,21 @@ function App() {
         walrusObjectId: walrus.objectId,
       });
       const tx = new Transaction();
-      const [anchorCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(1)]);
-      tx.transferObjects([anchorCoin], tx.pure.address(anchorDigest.anchorAddress));
+
+      if (packageId) {
+        tx.moveCall({
+          target: `${packageId}::proof_registry::seal_proof`,
+          arguments: [
+            tx.pure.vector("u8", stringToBytes(walrus.blobId)),
+            tx.pure.vector("u8", hexToBytes(anchorDigest.anchorDigest)),
+            tx.pure.vector("u8", stringToBytes("evidence-hash+signer+rubric-v1")),
+            tx.object("0x6"),
+          ],
+        });
+      } else {
+        const [anchorCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(1)]);
+        tx.transferObjects([anchorCoin], tx.pure.address(anchorDigest.anchorAddress));
+      }
 
       const result = await dAppKit.signAndExecuteTransaction({
         transaction: tx,
@@ -263,12 +297,27 @@ function App() {
         );
       }
 
+      const details = await client.getTransaction({
+        digest: result.Transaction.digest,
+        include: { effects: true, objectTypes: true },
+      });
+      const receiptId = packageId
+        ? details.Transaction?.effects?.changedObjects.find((change) => {
+            const objectType = details.Transaction?.objectTypes?.[change.objectId] ?? "";
+            return (
+              change.idOperation === "Created" &&
+              objectType.includes("::proof_registry::ProofReceipt")
+            );
+          })?.objectId
+        : undefined;
+
       setSealed(true);
       setAnchor({
         digest: result.Transaction.digest,
         proofDigest: proof.proofDigest,
         anchorDigest: anchorDigest.anchorDigest,
         anchorAddress: anchorDigest.anchorAddress,
+        receiptId,
         walrusBlobId: walrus.blobId,
         walrusObjectId: walrus.objectId,
         walrusEventDigest: walrus.eventDigest,
@@ -277,6 +326,53 @@ function App() {
       setAnchorError(error instanceof Error ? error.message : "Unable to anchor proof.");
     } finally {
       setIsAnchoring(false);
+    }
+  }
+
+  async function publishProofRegistry() {
+    if (!account) {
+      setAnchorError("Connect Slush on testnet before publishing ProofReceipt.");
+      return;
+    }
+
+    setAnchorError("");
+    setIsPublishing(true);
+
+    try {
+      const tx = new Transaction();
+      const upgradeCap = tx.publish({
+        modules: PROOF_REGISTRY_MODULES,
+        dependencies: PROOF_REGISTRY_DEPENDENCIES,
+      });
+      tx.transferObjects([upgradeCap], tx.pure.address(account.address));
+
+      const result = await dAppKit.signAndExecuteTransaction({ transaction: tx });
+
+      if (result.FailedTransaction) {
+        throw new Error(
+          result.FailedTransaction.status.error?.message ?? "Package publish failed.",
+        );
+      }
+
+      const details = await client.getTransaction({
+        digest: result.Transaction.digest,
+        include: { effects: true },
+      });
+      const packageObject = details.Transaction?.effects?.changedObjects.find(
+        (change) => change.outputState === "PackageWrite" && change.idOperation === "Created",
+      );
+
+      if (!packageObject) {
+        throw new Error("Publish succeeded, but package id was not found in transaction effects.");
+      }
+
+      window.localStorage.setItem("walrus-proof-agent-package-id", packageObject.objectId);
+      setPackageId(packageObject.objectId);
+      setPackageDigest(result.Transaction.digest);
+    } catch (error) {
+      setAnchorError(error instanceof Error ? error.message : "Unable to publish ProofReceipt.");
+    } finally {
+      setIsPublishing(false);
     }
   }
 
@@ -363,6 +459,30 @@ function App() {
                 <dd>{network}</dd>
               </div>
               <div>
+                <dt>ProofReceipt package</dt>
+                <dd>
+                  {packageId ? (
+                    <span className="mono">{packageId}</span>
+                  ) : (
+                    "Publish from Slush to mint first-class receipts"
+                  )}
+                </dd>
+              </div>
+              {packageDigest && (
+                <div>
+                  <dt>Package tx</dt>
+                  <dd>
+                    <a
+                      href={`https://testnet.suivision.xyz/txblock/${packageDigest}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {shortDigest(packageDigest)}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              <div>
                 <dt>Walrus blob</dt>
                 <dd>
                   {anchor?.walrusBlobId ? (
@@ -424,6 +544,12 @@ function App() {
                     <dt>Anchor address</dt>
                     <dd className="mono">{anchor.anchorAddress}</dd>
                   </div>
+                  {anchor.receiptId && (
+                    <div>
+                      <dt>ProofReceipt</dt>
+                      <dd className="mono">{anchor.receiptId}</dd>
+                    </div>
+                  )}
                   <div>
                     <dt>Testnet tx</dt>
                     <dd>
@@ -439,8 +565,17 @@ function App() {
                 </>
               )}
             </dl>
+            {!packageId && (
+              <button className="secondary" onClick={publishProofRegistry} disabled={!account || isPublishing}>
+                {isPublishing ? "Publishing package..." : "Publish ProofReceipt package"}
+              </button>
+            )}
             <button className="primary" onClick={sealProofToSui} disabled={!account || isAnchoring}>
-              {isAnchoring ? "Uploading and waiting for wallet..." : "Upload to Walrus + anchor on Sui"}
+              {isAnchoring
+                ? "Uploading and waiting for wallet..."
+                : packageId
+                  ? "Upload to Walrus + mint ProofReceipt"
+                  : "Upload to Walrus + anchor on Sui"}
             </button>
             {anchorError && <p className="error">{anchorError}</p>}
           </aside>
