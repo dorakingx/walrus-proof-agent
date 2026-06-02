@@ -1,6 +1,7 @@
 node_modules
 dist
 move/build
+outputs
 .vercel
 .DS_Store
 *.local

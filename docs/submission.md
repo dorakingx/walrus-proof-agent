@@ -17,11 +17,22 @@ Walrus Proof Agent stores AI-agent evidence and reasoning on Walrus, then mints 
 - GitHub repository
 - Short project description
 - Track: Walrus
-- ProofReceipt package id from the successful testnet run
-- Walrus blob id from the successful testnet run
-- ProofReceipt object id from the successful testnet run
-- Sui testnet transaction digest from the successful testnet run
-- Optional 2-minute demo video
+- ProofReceipt package id from the successful testnet run: `0xa3e9a77c772f1cc588fd2f1e3c7d5dc99965ab3c5f183f88fbf240c36c4fab6a`
+- Walrus blob id from the successful testnet run: `1obXQfVEnVz9t2lA2RTJSEVdy-o83VUkx27rgbKkX6M`
+- Walrus object id from the successful testnet run: `0xa1ef0782a603f233bdee115363d80b55952a9ae249ea9ebc31ca62b9a2c8bba0`
+- ProofReceipt object id from the successful testnet run: `0x20440d2307718b28efa4ba263bd04d2b698ce49f313b68028d1aea54fdcad572`
+- Sui testnet transaction digest from the successful testnet run: `DgzmaWF17k9Mre3tvYYyZoZ5rKhqLvY9qQ6NExqajvUE`
+- Optional demo video: `outputs/walrus-proof-agent-demo.mov`
+
+## Successful Testnet Run
+
+- ProofReceipt package: `0xa3e9a77c772f1cc588fd2f1e3c7d5dc99965ab3c5f183f88fbf240c36c4fab6a`
+- Walrus blob: `https://aggregator.walrus-testnet.walrus.space/v1/blobs/1obXQfVEnVz9t2lA2RTJSEVdy-o83VUkx27rgbKkX6M`
+- Walrus object: `0xa1ef0782a603f233bdee115363d80b55952a9ae249ea9ebc31ca62b9a2c8bba0`
+- ProofReceipt object: `https://testnet.suivision.xyz/object/0x20440d2307718b28efa4ba263bd04d2b698ce49f313b68028d1aea54fdcad572`
+- Testnet transaction: `https://testnet.suivision.xyz/txblock/DgzmaWF17k9Mre3tvYYyZoZ5rKhqLvY9qQ6NExqajvUE`
+- Proof digest: `0x8f02754e246d2129a71e39265675a1da3de1693b7db1decb7bd8354c1e6db55d`
+- Anchor digest: `0x41e88f3ec6ec7c119ff02830f64d0d01a642e058720aa45a547f47defe1dd307`
 
 ## Judge Demo Flow
 
