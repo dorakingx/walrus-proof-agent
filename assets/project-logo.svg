@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Walrus Proof Agent logo">
+  <defs>
+    <linearGradient id="bg" x1="128" x2="896" y1="128" y2="896" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10201a"/>
+      <stop offset="1" stop-color="#07110d"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="326" x2="698" y1="150" y2="838" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="0.52" stop-color="#39c98c"/>
+      <stop offset="1" stop-color="#0f8f65"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="356" fill="none" stroke="#1f4d3b" stroke-width="28" opacity="0.75"/>
+  <circle cx="512" cy="512" r="288" fill="#0c1914" stroke="#245d46" stroke-width="12"/>
+  <path
+    d="M512 150c84 118 161 224 161 349 0 105-66 184-161 184s-161-79-161-184c0-125 77-231 161-349Z"
+    fill="url(#drop)"
+    filter="url(#shadow)"
+  />
+  <path d="M431 476c22-54 55-111 81-150 28 42 60 98 81 150" fill="none" stroke="#e7fff5" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" opacity="0.96"/>
+  <path d="M419 556h186" stroke="#e7fff5" stroke-width="34" stroke-linecap="round" opacity="0.96"/>
+  <text x="512" y="794" fill="#e7fff5" font-family="Arial, sans-serif" font-size="118" font-weight="900" text-anchor="middle">WPA</text>
+  <text x="512" y="870" fill="#8ee7c0" font-family="Arial, sans-serif" font-size="34" font-weight="800" text-anchor="middle" textLength="470" lengthAdjust="spacingAndGlyphs">WALRUS PROOF AGENT</text>
+</svg>
