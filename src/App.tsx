@@ -21,10 +21,10 @@ type AnchorState = {
   digest: string;
   proofDigest: string;
   anchorDigest: string;
+  anchorAddress: string;
   walrusBlobId: string;
   walrusObjectId?: string;
   walrusEventDigest?: string;
-  eventBytes: number[];
 };
 
 type WalrusStoreResult = {
@@ -152,7 +152,7 @@ async function createAnchorDigest(input: {
 
   return {
     anchorDigest: `0x${bytesToHex(digestBytes)}`,
-    eventBytes: Array.from(digestBytes),
+    anchorAddress: `0x${bytesToHex(digestBytes)}`,
   };
 }
 
@@ -250,11 +250,8 @@ function App() {
         walrusObjectId: walrus.objectId,
       });
       const tx = new Transaction();
-      tx.moveCall({
-        target: "0x2::event::emit",
-        typeArguments: ["vector<u8>"],
-        arguments: [tx.pure.vector("u8", anchorDigest.eventBytes)],
-      });
+      const [anchorCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(1)]);
+      tx.transferObjects([anchorCoin], tx.pure.address(anchorDigest.anchorAddress));
 
       const result = await dAppKit.signAndExecuteTransaction({
         transaction: tx,
@@ -271,10 +268,10 @@ function App() {
         digest: result.Transaction.digest,
         proofDigest: proof.proofDigest,
         anchorDigest: anchorDigest.anchorDigest,
+        anchorAddress: anchorDigest.anchorAddress,
         walrusBlobId: walrus.blobId,
         walrusObjectId: walrus.objectId,
         walrusEventDigest: walrus.eventDigest,
-        eventBytes: anchorDigest.eventBytes,
       });
     } catch (error) {
       setAnchorError(error instanceof Error ? error.message : "Unable to anchor proof.");
@@ -422,6 +419,10 @@ function App() {
                   <div>
                     <dt>Anchor digest</dt>
                     <dd className="mono">{anchor.anchorDigest}</dd>
+                  </div>
+                  <div>
+                    <dt>Anchor address</dt>
+                    <dd className="mono">{anchor.anchorAddress}</dd>
                   </div>
                   <div>
                     <dt>Testnet tx</dt>
