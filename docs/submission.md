@@ -22,7 +22,7 @@ Walrus Proof Agent stores AI-agent evidence and reasoning on Walrus, then mints 
 - Walrus object id from the successful testnet run: `0xa1ef0782a603f233bdee115363d80b55952a9ae249ea9ebc31ca62b9a2c8bba0`
 - ProofReceipt object id from the successful testnet run: `0x20440d2307718b28efa4ba263bd04d2b698ce49f313b68028d1aea54fdcad572`
 - Sui testnet transaction digest from the successful testnet run: `DgzmaWF17k9Mre3tvYYyZoZ5rKhqLvY9qQ6NExqajvUE`
-- Optional demo video: `outputs/walrus-proof-agent-demo.mov`
+- Optional demo video: `outputs/walrus-proof-agent-2min-demo.mov`
 
 ## Successful Testnet Run
 
