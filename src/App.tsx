@@ -1,4 +1,12 @@
 import { useMemo, useState } from "react";
+import { ConnectButton } from "@mysten/dapp-kit-react/ui";
+import {
+  useCurrentAccount,
+  useCurrentNetwork,
+  useCurrentWallet,
+  useDAppKit,
+} from "@mysten/dapp-kit-react";
+import { Transaction } from "@mysten/sui/transactions";
 
 type StepStatus = "verified" | "pending" | "sealed";
 
@@ -7,6 +15,12 @@ type ProofStep = {
   description: string;
   status: StepStatus;
   hash: string;
+};
+
+type AnchorState = {
+  digest: string;
+  proofDigest: string;
+  eventBytes: number[];
 };
 
 const initialSteps: ProofStep[] = [
@@ -30,7 +44,7 @@ const initialSteps: ProofStep[] = [
   },
   {
     label: "Sui Receipt",
-    description: "A compact proof object records the Walrus blob id, digest, signer, and policy.",
+    description: "A testnet event anchors the Walrus blob id, digest, signer, and policy.",
     status: "pending",
     hash: "0x---",
   },
@@ -54,9 +68,56 @@ function shortDigest(value: string) {
   return `0x${hex.slice(0, 4)}...${hex.slice(-4)}`;
 }
 
+function bytesToHex(bytes: Uint8Array) {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function shortAddress(address?: string) {
+  if (!address) {
+    return "Not connected";
+  }
+
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+async function createProofPayload(scenario: string, signer: string) {
+  const payload = {
+    app: "walrus-proof-agent",
+    network: "sui:testnet",
+    scenario,
+    signer,
+    walrusBlobId: "wal://grant-review/epoch-18",
+    policy: "evidence-hash+signer+rubric-v1",
+    evidence: [
+      "proposal.pdf",
+      "github-activity.json",
+      "budget-table.csv",
+      "conflict-disclosures.md",
+    ],
+    createdAt: new Date().toISOString(),
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  const digestBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+
+  return {
+    payload,
+    proofDigest: `0x${bytesToHex(digestBytes)}`,
+    eventBytes: Array.from(digestBytes),
+  };
+}
+
 function App() {
   const [mode, setMode] = useState<"dao" | "trading" | "ops">("dao");
   const [sealed, setSealed] = useState(false);
+  const [anchor, setAnchor] = useState<AnchorState | null>(null);
+  const [anchorError, setAnchorError] = useState("");
+  const [isAnchoring, setIsAnchoring] = useState(false);
+  const account = useCurrentAccount();
+  const wallet = useCurrentWallet();
+  const network = useCurrentNetwork();
+  const dAppKit = useDAppKit();
 
   const scenario = useMemo(() => {
     const labels = {
@@ -77,11 +138,52 @@ function App() {
         ? {
             ...step,
             status: "verified" as const,
-            hash: shortDigest(`${scenario}-${Date.now()}`),
+            hash: anchor?.digest ? shortDigest(anchor.digest) : shortDigest(`${scenario}-${Date.now()}`),
           }
         : step,
     );
-  }, [scenario, sealed]);
+  }, [anchor?.digest, scenario, sealed]);
+
+  async function sealProofToSui() {
+    if (!account) {
+      setAnchorError("Connect Slush on testnet before anchoring a proof.");
+      return;
+    }
+
+    setAnchorError("");
+    setIsAnchoring(true);
+
+    try {
+      const proof = await createProofPayload(scenario, account.address);
+      const tx = new Transaction();
+      tx.moveCall({
+        target: "0x2::event::emit",
+        typeArguments: ["vector<u8>"],
+        arguments: [tx.pure.vector("u8", proof.eventBytes)],
+      });
+
+      const result = await dAppKit.signAndExecuteTransaction({
+        transaction: tx,
+      });
+
+      if (result.FailedTransaction) {
+        throw new Error(
+          result.FailedTransaction.status.error?.message ?? "Sui transaction failed.",
+        );
+      }
+
+      setSealed(true);
+      setAnchor({
+        digest: result.Transaction.digest,
+        proofDigest: proof.proofDigest,
+        eventBytes: proof.eventBytes,
+      });
+    } catch (error) {
+      setAnchorError(error instanceof Error ? error.message : "Unable to anchor proof.");
+    } finally {
+      setIsAnchoring(false);
+    }
+  }
 
   return (
     <main className="app">
@@ -91,7 +193,9 @@ function App() {
             <p className="eyebrow">Sui Overflow 2026 concept</p>
             <h1>Walrus Proof Agent</h1>
           </div>
-          <button className="connect">Connect Sui Wallet</button>
+          <div className="walletArea">
+            <ConnectButton />
+          </div>
         </header>
 
         <section className="summary">
@@ -152,6 +256,18 @@ function App() {
             </div>
             <dl>
               <div>
+                <dt>Wallet</dt>
+                <dd>{wallet?.name ?? "Connect Slush"}</dd>
+              </div>
+              <div>
+                <dt>Signer</dt>
+                <dd>{shortAddress(account?.address)}</dd>
+              </div>
+              <div>
+                <dt>Network</dt>
+                <dd>{network}</dd>
+              </div>
+              <div>
                 <dt>Walrus blob</dt>
                 <dd>wal://grant-review/epoch-18</dd>
               </div>
@@ -167,10 +283,31 @@ function App() {
                 <dt>Verifier</dt>
                 <dd>Anyone with the Sui object id</dd>
               </div>
+              {anchor && (
+                <>
+                  <div>
+                    <dt>Proof digest</dt>
+                    <dd className="mono">{anchor.proofDigest}</dd>
+                  </div>
+                  <div>
+                    <dt>Testnet tx</dt>
+                    <dd>
+                      <a
+                        href={`https://testnet.suivision.xyz/txblock/${anchor.digest}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {shortDigest(anchor.digest)}
+                      </a>
+                    </dd>
+                  </div>
+                </>
+              )}
             </dl>
-            <button className="primary" onClick={() => setSealed(true)}>
-              Seal proof to Sui
+            <button className="primary" onClick={sealProofToSui} disabled={!account || isAnchoring}>
+              {isAnchoring ? "Waiting for wallet..." : "Seal proof to Sui testnet"}
             </button>
+            {anchorError && <p className="error">{anchorError}</p>}
           </aside>
         </section>
       </section>
