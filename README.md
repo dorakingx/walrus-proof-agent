@@ -16,11 +16,12 @@ The web app now supports a first real Sui testnet anchor:
 
 1. Connect Slush on Sui testnet.
 2. Choose a workflow scenario.
-3. Click `Seal proof to Sui testnet`.
-4. The app hashes the proof payload and emits the digest as a `sui::event::emit<vector<u8>>` event.
-5. The UI shows the transaction digest and links to SuiVision testnet.
+3. Click `Upload to Walrus + anchor on Sui`.
+4. The app uploads the proof payload to the Walrus Testnet publisher HTTP API.
+5. The app hashes `proofDigest + Walrus blob id + signer` and emits that anchor digest as a `sui::event::emit<vector<u8>>` event.
+6. The UI shows the Walrus blob id, Walrus object id when available, Sui transaction digest, and verification links.
 
-This is the bridge from prototype to real demo. The next milestone is replacing the placeholder Walrus blob id with a live Walrus upload response and then deploying the custom `ProofReceipt` Move package.
+This is the bridge from prototype to real demo. The next milestone is deploying the custom `ProofReceipt` Move package so the anchor is stored as a first-class Sui object rather than a generic event.
 
 ## Local development
 

@@ -20,8 +20,42 @@ type ProofStep = {
 type AnchorState = {
   digest: string;
   proofDigest: string;
+  anchorDigest: string;
+  walrusBlobId: string;
+  walrusObjectId?: string;
+  walrusEventDigest?: string;
   eventBytes: number[];
 };
+
+type WalrusStoreResult = {
+  blobId: string;
+  objectId?: string;
+  endEpoch?: number;
+  eventDigest?: string;
+  status: "newlyCreated" | "alreadyCertified";
+};
+
+type WalrusStoreResponse =
+  | {
+      newlyCreated: {
+        blobObject: {
+          id: string;
+          blobId: string;
+          storage?: {
+            endEpoch?: number;
+          };
+        };
+      };
+    }
+  | {
+      alreadyCertified: {
+        blobId: string;
+        endEpoch?: number;
+        event?: {
+          txDigest?: string;
+        };
+      };
+    };
 
 const initialSteps: ProofStep[] = [
   {
@@ -44,7 +78,7 @@ const initialSteps: ProofStep[] = [
   },
   {
     label: "Sui Receipt",
-    description: "A testnet event anchors the Walrus blob id, digest, signer, and policy.",
+    description: "A testnet event anchors the real Walrus blob id, digest, signer, and policy.",
     status: "pending",
     hash: "0x---",
   },
@@ -88,7 +122,6 @@ async function createProofPayload(scenario: string, signer: string) {
     network: "sui:testnet",
     scenario,
     signer,
-    walrusBlobId: "wal://grant-review/epoch-18",
     policy: "evidence-hash+signer+rubric-v1",
     evidence: [
       "proposal.pdf",
@@ -104,7 +137,60 @@ async function createProofPayload(scenario: string, signer: string) {
   return {
     payload,
     proofDigest: `0x${bytesToHex(digestBytes)}`,
+  };
+}
+
+async function createAnchorDigest(input: {
+  proofDigest: string;
+  signer: string;
+  scenario: string;
+  walrusBlobId: string;
+  walrusObjectId?: string;
+}) {
+  const bytes = new TextEncoder().encode(JSON.stringify(input));
+  const digestBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+
+  return {
+    anchorDigest: `0x${bytesToHex(digestBytes)}`,
     eventBytes: Array.from(digestBytes),
+  };
+}
+
+async function storeProofOnWalrus(payload: unknown, signer: string): Promise<WalrusStoreResult> {
+  const publisher = "https://publisher.walrus-testnet.walrus.space";
+  const params = new URLSearchParams({
+    epochs: "1",
+    deletable: "true",
+    send_object_to: signer,
+  });
+  const response = await fetch(`${publisher}/v1/blobs?${params}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload, null, 2),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Walrus upload failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as WalrusStoreResponse;
+
+  if ("newlyCreated" in data) {
+    return {
+      status: "newlyCreated",
+      blobId: data.newlyCreated.blobObject.blobId,
+      objectId: data.newlyCreated.blobObject.id,
+      endEpoch: data.newlyCreated.blobObject.storage?.endEpoch,
+    };
+  }
+
+  return {
+    status: "alreadyCertified",
+    blobId: data.alreadyCertified.blobId,
+    endEpoch: data.alreadyCertified.endEpoch,
+    eventDigest: data.alreadyCertified.event?.txDigest,
   };
 }
 
@@ -155,11 +241,19 @@ function App() {
 
     try {
       const proof = await createProofPayload(scenario, account.address);
+      const walrus = await storeProofOnWalrus(proof.payload, account.address);
+      const anchorDigest = await createAnchorDigest({
+        proofDigest: proof.proofDigest,
+        signer: account.address,
+        scenario,
+        walrusBlobId: walrus.blobId,
+        walrusObjectId: walrus.objectId,
+      });
       const tx = new Transaction();
       tx.moveCall({
         target: "0x2::event::emit",
         typeArguments: ["vector<u8>"],
-        arguments: [tx.pure.vector("u8", proof.eventBytes)],
+        arguments: [tx.pure.vector("u8", anchorDigest.eventBytes)],
       });
 
       const result = await dAppKit.signAndExecuteTransaction({
@@ -176,7 +270,11 @@ function App() {
       setAnchor({
         digest: result.Transaction.digest,
         proofDigest: proof.proofDigest,
-        eventBytes: proof.eventBytes,
+        anchorDigest: anchorDigest.anchorDigest,
+        walrusBlobId: walrus.blobId,
+        walrusObjectId: walrus.objectId,
+        walrusEventDigest: walrus.eventDigest,
+        eventBytes: anchorDigest.eventBytes,
       });
     } catch (error) {
       setAnchorError(error instanceof Error ? error.message : "Unable to anchor proof.");
@@ -252,7 +350,7 @@ function App() {
           <aside className="panel inspector">
             <div className="panelHeader">
               <h3>Receipt preview</h3>
-              <span>Sui object</span>
+              <span>Walrus + Sui event</span>
             </div>
             <dl>
               <div>
@@ -269,8 +367,40 @@ function App() {
               </div>
               <div>
                 <dt>Walrus blob</dt>
-                <dd>wal://grant-review/epoch-18</dd>
+                <dd>
+                  {anchor?.walrusBlobId ? (
+                    <a
+                      href={`https://aggregator.walrus-testnet.walrus.space/v1/blobs/${anchor.walrusBlobId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {anchor.walrusBlobId}
+                    </a>
+                  ) : (
+                    "Ready to upload proof JSON"
+                  )}
+                </dd>
               </div>
+              {anchor?.walrusObjectId && (
+                <div>
+                  <dt>Walrus object</dt>
+                  <dd className="mono">{anchor.walrusObjectId}</dd>
+                </div>
+              )}
+              {anchor?.walrusEventDigest && (
+                <div>
+                  <dt>Certified event</dt>
+                  <dd>
+                    <a
+                      href={`https://testnet.suivision.xyz/txblock/${anchor.walrusEventDigest}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {shortDigest(anchor.walrusEventDigest)}
+                    </a>
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>Policy</dt>
                 <dd>Evidence hash + signer + rubric version</dd>
@@ -281,13 +411,17 @@ function App() {
               </div>
               <div>
                 <dt>Verifier</dt>
-                <dd>Anyone with the Sui object id</dd>
+                <dd>Anyone with the Walrus blob id and Sui transaction digest</dd>
               </div>
               {anchor && (
                 <>
                   <div>
                     <dt>Proof digest</dt>
                     <dd className="mono">{anchor.proofDigest}</dd>
+                  </div>
+                  <div>
+                    <dt>Anchor digest</dt>
+                    <dd className="mono">{anchor.anchorDigest}</dd>
                   </div>
                   <div>
                     <dt>Testnet tx</dt>
@@ -305,7 +439,7 @@ function App() {
               )}
             </dl>
             <button className="primary" onClick={sealProofToSui} disabled={!account || isAnchoring}>
-              {isAnchoring ? "Waiting for wallet..." : "Seal proof to Sui testnet"}
+              {isAnchoring ? "Uploading and waiting for wallet..." : "Upload to Walrus + anchor on Sui"}
             </button>
             {anchorError && <p className="error">{anchorError}</p>}
           </aside>
