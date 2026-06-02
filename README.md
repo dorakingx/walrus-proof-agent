@@ -84,3 +84,43 @@ sui move build
 ## Submission Notes
 
 See `docs/submission.md` for the judging checklist and `docs/demo-script.md` for the 2-minute demo script.
+
+## Safe Demo Recording
+
+Do not open local HTML files directly in the browser when recording. Direct file URLs can expose local paths such as `/Users/...`.
+
+Use the local demo server instead:
+
+```bash
+npm run demo:server
+```
+
+Then open:
+
+```text
+http://localhost:8000/demo/intro.html
+```
+
+You can also use the shell script:
+
+```bash
+./scripts/serve-demo.sh
+```
+
+Chrome app mode, which hides the normal browser chrome and keeps local paths out of the URL bar:
+
+```bash
+open -a "Google Chrome" --args --app=http://localhost:8000/demo/intro.html
+```
+
+Brave app mode:
+
+```bash
+open -a "Brave Browser" --args --app=http://localhost:8000/demo/intro.html
+```
+
+For the live product demo, open the deployed app:
+
+```text
+https://walrus-proof-agent.vercel.app
+```

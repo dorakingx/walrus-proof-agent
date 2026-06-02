@@ -18,21 +18,21 @@ Walrus Proof Agent stores AI-agent evidence and reasoning on Walrus, then mints 
 - Short project description
 - Track: Walrus
 - ProofReceipt package id from the successful testnet run: `0xa3e9a77c772f1cc588fd2f1e3c7d5dc99965ab3c5f183f88fbf240c36c4fab6a`
-- Walrus blob id from the successful testnet run: `1obXQfVEnVz9t2lA2RTJSEVdy-o83VUkx27rgbKkX6M`
-- Walrus object id from the successful testnet run: `0xa1ef0782a603f233bdee115363d80b55952a9ae249ea9ebc31ca62b9a2c8bba0`
-- ProofReceipt object id from the successful testnet run: `0x20440d2307718b28efa4ba263bd04d2b698ce49f313b68028d1aea54fdcad572`
-- Sui testnet transaction digest from the successful testnet run: `DgzmaWF17k9Mre3tvYYyZoZ5rKhqLvY9qQ6NExqajvUE`
-- Optional demo video: `outputs/walrus-proof-agent-2min-demo.mov`
+- Walrus blob id from the successful testnet run: `Chb7kXNYNRDpbnrh7nQOjmqUefQwlmu0Rn69NBF7sYM`
+- Walrus object id from the successful testnet run: `0xbdb198ab7638e3f6ab5bac75c61bc1f0532661126469a9abdffb8fd38dfaf55d`
+- ProofReceipt object id from the successful testnet run: `0x062ced55fdcd412c92bb24f6a8398362f20e4504d3c3dd8c7f7ff41d84bc4fb5`
+- Sui testnet transaction digest from the successful testnet run: `GJagYAYMN9oq5dNnJdbo4NZeDneX3s6vG6YUEPmY9PhE`
+- Optional demo video: `outputs/walrus-proof-agent-hybrid-demo.mov`
 
 ## Successful Testnet Run
 
 - ProofReceipt package: `0xa3e9a77c772f1cc588fd2f1e3c7d5dc99965ab3c5f183f88fbf240c36c4fab6a`
-- Walrus blob: `https://aggregator.walrus-testnet.walrus.space/v1/blobs/1obXQfVEnVz9t2lA2RTJSEVdy-o83VUkx27rgbKkX6M`
-- Walrus object: `0xa1ef0782a603f233bdee115363d80b55952a9ae249ea9ebc31ca62b9a2c8bba0`
-- ProofReceipt object: `https://testnet.suivision.xyz/object/0x20440d2307718b28efa4ba263bd04d2b698ce49f313b68028d1aea54fdcad572`
-- Testnet transaction: `https://testnet.suivision.xyz/txblock/DgzmaWF17k9Mre3tvYYyZoZ5rKhqLvY9qQ6NExqajvUE`
-- Proof digest: `0x8f02754e246d2129a71e39265675a1da3de1693b7db1decb7bd8354c1e6db55d`
-- Anchor digest: `0x41e88f3ec6ec7c119ff02830f64d0d01a642e058720aa45a547f47defe1dd307`
+- Walrus blob: `https://aggregator.walrus-testnet.walrus.space/v1/blobs/Chb7kXNYNRDpbnrh7nQOjmqUefQwlmu0Rn69NBF7sYM`
+- Walrus object: `0xbdb198ab7638e3f6ab5bac75c61bc1f0532661126469a9abdffb8fd38dfaf55d`
+- ProofReceipt object: `https://testnet.suivision.xyz/object/0x062ced55fdcd412c92bb24f6a8398362f20e4504d3c3dd8c7f7ff41d84bc4fb5`
+- Testnet transaction: `https://testnet.suivision.xyz/txblock/GJagYAYMN9oq5dNnJdbo4NZeDneX3s6vG6YUEPmY9PhE`
+- Proof digest: `0x6c4fcac6eb81ad1727b7ada9fc74becb6614838a0f690955b7e742508a4e6df0`
+- Anchor digest: `0x91e7fc86dec9d73fe26d5971f08f07eaddab64010b762c651a2ff813897e6246`
 
 ## Judge Demo Flow
 
